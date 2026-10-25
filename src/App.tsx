@@ -1,139 +1,163 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { EditorTab } from './types';
+import { TopBar, ViewMode } from './components/layout/TopBar';
+import { SideRail } from './components/layout/SideRail';
+import { PreviewPane } from './components/layout/PreviewPane';
 import { EditorPanel } from './components/EditorPanel';
-import { ResumePreview } from './components/ResumePreview';
-import { ExportButton } from './components/ExportButton';
+import { PrintRoot } from './components/PrintRoot';
+import { ToastHost, toast } from './components/ui/Toast';
+import { Icon } from './components/ui/Icon';
 import { useResumeStore } from './store/resumeStore';
+import { useShortcuts } from './hooks/useShortcuts';
+import { cn } from './utils';
+import { QuickStart } from './components/QuickStart';
+import { useUiStore } from './store/uiStore';
 
-type ViewMode = 'split' | 'edit' | 'preview';
+const THEME_KEY = 'resume-studio-theme';
+
+function initialTheme(): 'light' | 'dark' {
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'light' || saved === 'dark') return saved;
+  } catch {
+    /* ignore */
+  }
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
 
 export default function App() {
-  const previewRef = useRef<HTMLDivElement>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('split');
-  const [previewScale, setPreviewScale] = useState(0.55);
-  const config = useResumeStore((s) => s.config);
+  const captureRef = useRef<HTMLDivElement>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>(() =>
+    typeof window !== 'undefined' && window.innerWidth < 1024 ? 'edit' : 'split'
+  );
+  const [tab, setTab] = useState<EditorTab>('personal');
+  const [theme, setTheme] = useState<'light' | 'dark'>(initialTheme);
+
+  const openQuickStart = useUiStore((state) => state.openQuickStart);
+  const undo = useResumeStore((s) => s.undo);
+  const redo = useResumeStore((s) => s.redo);
+  const saveToLibrary = useResumeStore((s) => s.saveToLibrary);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch {
+      /* ignore */
+    }
+  }, [theme]);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('resume-studio-onboarded')) return;
+    } catch {
+      return;
+    }
+    openQuickStart();
+  }, [openQuickStart]);
+
+  useShortcuts({
+    onUndo: () => {
+      undo();
+      toast('Изменение отменено', { tone: 'info' });
+    },
+    onRedo: redo,
+    onPrint: () => window.print(),
+    onSave: () => {
+      saveToLibrary();
+      toast('Версия сохранена в библиотеку');
+    },
+  });
+
+  const mobileItems: { id: ViewMode | 'ai' | 'quality'; label: string; icon: string }[] = [
+    { id: 'edit', label: 'Форма', icon: 'edit' },
+    { id: 'preview', label: 'Превью', icon: 'eye' },
+    { id: 'ai', label: 'ИИ', icon: 'sparkles' },
+    { id: 'quality', label: 'Проверка', icon: 'gauge' },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col" style={{ fontFamily: 'system-ui, sans-serif' }}>
+    <div className="flex h-[100dvh] flex-col overflow-hidden bg-app text-ink">
+      <TopBar
+        viewMode={viewMode}
+        onViewMode={setViewMode}
+        theme={theme}
+        onTheme={() => setTheme((value) => (value === 'dark' ? 'light' : 'dark'))}
+        captureRef={captureRef}
+        onNavigate={(target) => {
+          setTab(target);
+          setViewMode('edit');
+        }}
+        onSave={() => toast('Версия сохранена', { description: 'Открыть — раздел «Библиотека».' })}
+      />
 
-      {/* ── TOP BAR ── */}
-      <header className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between flex-shrink-0 z-10 shadow-sm">
-        <div className="flex items-center gap-3">
-          {/* Logo */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="font-bold text-gray-900 text-sm leading-tight">Resume Builder</h1>
-              <p className="text-xs text-gray-400 leading-tight">Professional CV Creator</p>
-            </div>
-          </div>
+      <main className="flex min-h-0 flex-1 overflow-hidden">
+        {viewMode !== 'preview' && <SideRail activeTab={tab} onTab={setTab} />}
 
-          {/* View mode toggle */}
-          <div className="hidden md:flex items-center gap-0.5 bg-gray-100 p-0.5 rounded-lg ml-4">
-            {([
-              { id: 'edit',    label: 'Форма',   icon: '📝' },
-              { id: 'split',   label: 'Split',   icon: '⊟'  },
-              { id: 'preview', label: 'Preview', icon: '👁'  },
-            ] as { id: ViewMode; label: string; icon: string }[]).map((mode) => (
-              <button
-                key={mode.id}
-                onClick={() => setViewMode(mode.id)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  viewMode === mode.id ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <span>{mode.icon}</span>
-                <span className="hidden lg:inline">{mode.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Scale control */}
-          <div className="hidden lg:flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg">
-            <button
-              onClick={() => setPreviewScale((s) => Math.max(0.3, +(s - 0.05).toFixed(2)))}
-              className="text-gray-500 hover:text-gray-700 font-mono text-sm leading-none"
-            >−</button>
-            <span className="text-xs font-medium text-gray-600 w-10 text-center">
-              {Math.round(previewScale * 100)}%
-            </span>
-            <button
-              onClick={() => setPreviewScale((s) => Math.min(1, +(s + 0.05).toFixed(2)))}
-              className="text-gray-500 hover:text-gray-700 font-mono text-sm leading-none"
-            >+</button>
-          </div>
-
-          {/* Active color indicator */}
-          <div className="hidden sm:flex items-center gap-1.5 bg-gray-100 px-3 py-1.5 rounded-lg">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: config.colorScheme.primary }} />
-            <span className="text-xs text-gray-600 font-medium">{config.colorScheme.name}</span>
-          </div>
-
-          <ExportButton previewRef={previewRef} />
-        </div>
-      </header>
-
-      {/* ── MAIN ── */}
-      <main className="flex-1 flex overflow-hidden">
-
-        {/* Editor panel */}
-        {(viewMode === 'split' || viewMode === 'edit') && (
-          <div className={`flex flex-col flex-shrink-0 overflow-hidden border-r border-gray-200 ${
-            viewMode === 'edit' ? 'w-full' : 'w-[420px] min-w-[360px]'
-          }`}>
-            <EditorPanel />
+        {viewMode !== 'preview' && (
+          <div
+            className={cn(
+              'flex min-h-0 flex-col border-line',
+              viewMode === 'split'
+                ? 'w-full shrink-0 border-r lg:w-[404px] xl:w-[440px]'
+                : 'min-w-0 flex-1'
+            )}
+          >
+            <EditorPanel activeTab={tab} onTab={setTab} wide={viewMode === 'edit'} />
           </div>
         )}
 
-        {/* Preview panel */}
-        {(viewMode === 'split' || viewMode === 'preview') && (
-          <div className="flex-1 overflow-auto bg-gray-200 p-6 flex flex-col items-center">
-
-            {/* Toolbar */}
-            <div className="flex items-center justify-between w-full mb-4" style={{ maxWidth: 794 * previewScale + 48 }}>
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-                <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
-                <span className="text-xs text-gray-400 ml-2 font-medium">
-                  Предпросмотр A4 · {Math.round(previewScale * 100)}%
-                </span>
-              </div>
-              <ExportButton previewRef={previewRef} />
-            </div>
-
-            {/* The preview component manages both hidden (1:1) and visible (scaled) copies */}
-            <ResumePreview ref={previewRef} scale={previewScale} />
-
-            <p className="mt-3 text-xs text-gray-400">794 × 1123 px (A4 @ 96 dpi)</p>
+        {viewMode !== 'edit' && (
+          <div className={cn('min-h-0 min-w-0 flex-1', viewMode === 'split' && 'hidden lg:flex')}>
+            <PreviewPane
+              captureRef={captureRef}
+              onOpenTemplates={() => {
+                setTab('design');
+                setViewMode((mode) => (mode === 'preview' ? 'split' : mode));
+              }}
+            />
           </div>
         )}
       </main>
 
-      {/* ── MOBILE BOTTOM TABS ── */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-2 py-2 flex justify-around z-50">
-        {([
-          { id: 'edit',    label: 'Редактор', icon: '📝' },
-          { id: 'preview', label: 'Просмотр', icon: '👁'  },
-        ] as { id: ViewMode; label: string; icon: string }[]).map((mode) => (
-          <button
-            key={mode.id}
-            onClick={() => setViewMode(mode.id)}
-            className={`flex flex-col items-center gap-0.5 px-4 py-1 rounded-lg text-xs font-medium transition-all ${
-              viewMode === mode.id ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500'
-            }`}
-          >
-            <span className="text-lg">{mode.icon}</span>
-            <span>{mode.label}</span>
-          </button>
-        ))}
-        <ExportButton previewRef={previewRef} />
-      </div>
+      {/* mobile navigation */}
+      <nav className="flex shrink-0 items-center justify-around border-t border-line bg-surface px-2 py-1.5 md:hidden">
+        {mobileItems.map((item) => {
+          const active =
+            item.id === 'ai' || item.id === 'quality'
+              ? tab === item.id && viewMode === 'edit'
+              : viewMode === item.id && !(item.id === 'edit' && (tab === 'ai' || tab === 'quality'));
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                if (item.id === 'ai' || item.id === 'quality') {
+                  setTab(item.id);
+                  setViewMode('edit');
+                } else {
+                  setViewMode(item.id as ViewMode);
+                }
+              }}
+              className={cn(
+                'flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[10px] font-semibold transition',
+                active ? 'text-brand-600 dark:text-brand-300' : 'text-ink-mute'
+              )}
+            >
+              <Icon name={item.icon} size={17} />
+              {item.label}
+            </button>
+          );
+        })}
+      </nav>
+
+      <QuickStart
+        onImportText={() => {
+          setTab('ai');
+          setViewMode('edit');
+        }}
+      />
+      <PrintRoot />
+      <ToastHost />
     </div>
   );
 }

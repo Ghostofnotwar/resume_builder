@@ -1,115 +1,109 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useResumeStore } from '../../store/resumeStore';
-import { Education } from '../../types';
-import { v4 as uuidv4 } from 'uuid';
-
-const inputClass =
-  'w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all placeholder-gray-300 text-gray-700';
-const labelClass = 'block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide';
-
-const emptyEdu = (): Education => ({
-  id: uuidv4(),
-  institution: '',
-  degree: '',
-  field: '',
-  startYear: '',
-  endYear: '',
-});
-
-interface EduCardProps {
-  edu: Education;
-  index: number;
-  onUpdate: (id: string, data: Partial<Education>) => void;
-  onRemove: (id: string) => void;
-}
-
-const EduCard: React.FC<EduCardProps> = ({ edu, index, onUpdate, onRemove }) => {
-  const [open, setOpen] = useState(index === 0);
-
-  return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
-      <div className="flex items-center bg-white px-3 py-2.5 gap-2">
-        <div className="w-7 h-7 rounded-full bg-indigo-50 flex items-center justify-center flex-shrink-0">
-          <span className="text-indigo-500 text-sm">🎓</span>
-        </div>
-        <button onClick={() => setOpen(!open)} className="flex-1 text-left min-w-0">
-          <p className="font-semibold text-sm text-gray-700 truncate">{edu.institution || 'Учебное заведение'}</p>
-          <p className="text-xs text-gray-400 truncate">
-            {edu.degree}{edu.field ? `, ${edu.field}` : ''} {edu.startYear ? `· ${edu.startYear}${edu.endYear ? `–${edu.endYear}` : ''}` : ''}
-          </p>
-        </button>
-        <div className="flex gap-1 flex-shrink-0">
-          <button onClick={() => setOpen(!open)} className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors">
-            <svg className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          <button onClick={() => onRemove(edu.id)} className="p-1.5 text-gray-300 hover:text-red-400 transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
-        </div>
-      </div>
-      {open && (
-        <div className="bg-gray-50 p-3 space-y-3 border-t border-gray-100">
-          <div>
-            <label className={labelClass}>Учебное заведение</label>
-            <input className={inputClass} value={edu.institution} placeholder="МГУ им. Ломоносова" onChange={(e) => onUpdate(edu.id, { institution: e.target.value })} />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className={labelClass}>Степень</label>
-              <input className={inputClass} value={edu.degree} placeholder="Бакалавр" onChange={(e) => onUpdate(edu.id, { degree: e.target.value })} />
-            </div>
-            <div>
-              <label className={labelClass}>Специальность</label>
-              <input className={inputClass} value={edu.field} placeholder="Информатика" onChange={(e) => onUpdate(edu.id, { field: e.target.value })} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className={labelClass}>Год начала</label>
-              <input type="number" min="1950" max="2099" className={inputClass} value={edu.startYear} placeholder="2015" onChange={(e) => onUpdate(edu.id, { startYear: e.target.value })} />
-            </div>
-            <div>
-              <label className={labelClass}>Год окончания</label>
-              <input type="number" min="1950" max="2099" className={inputClass} value={edu.endYear} placeholder="2019" onChange={(e) => onUpdate(edu.id, { endYear: e.target.value })} />
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+import { Button, CollapseCard, EmptyState, Field, IconButton, Input } from '../ui';
+import { AddButton, Grid2 } from './FormKit';
 
 export const EducationForm: React.FC = () => {
   const education = useResumeStore((s) => s.data.education);
   const addEducation = useResumeStore((s) => s.addEducation);
   const updateEducation = useResumeStore((s) => s.updateEducation);
   const removeEducation = useResumeStore((s) => s.removeEducation);
+  const moveEducation = useResumeStore((s) => s.moveEducation);
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-end">
-        <button
-          onClick={() => addEducation(emptyEdu())}
-          className="flex items-center gap-1.5 text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 px-3 py-1.5 rounded-lg transition-colors"
-        >
-          + Добавить
-        </button>
+      <div className="flex items-center justify-between">
+        <p className="text-[11.5px] leading-snug text-ink-mute">Вуз, курсы и программы — от новых к старым.</p>
+        <AddButton label="Место учёбы" onClick={() => addEducation()} />
       </div>
-      <div className="space-y-2">
-        {education.map((edu, index) => (
-          <EduCard key={edu.id} edu={edu} index={index} onUpdate={updateEducation} onRemove={removeEducation} />
-        ))}
-        {education.length === 0 && (
-          <div className="text-center py-8 text-gray-300">
-            <p className="text-3xl mb-2">🎓</p>
-            <p className="text-sm">Добавьте образование</p>
+
+      {!education.length && (
+        <EmptyState
+          icon="graduation"
+          title="Образование не добавлено"
+          description="Одно-два места учёбы достаточно. Курсы лучше вынести в «Сертификаты»."
+          action={<Button size="sm" variant="primary" icon="plus" onClick={() => addEducation()}>Добавить</Button>}
+        />
+      )}
+
+      {education.map((edu, index) => (
+        <div key={edu.id} className="rounded-2xl border border-line bg-surface">
+          <div className="flex items-center gap-2 px-3 py-2.5">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-ink-mute">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+                <path d="M22 9 12 4 2 9l10 5 10-5Z" />
+                <path d="M6 11.5V17c0 1.7 2.7 3 6 3s6-1.3 6-3v-5.5" />
+              </svg>
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-semibold text-ink">{edu.institution || 'Учебное заведение'}</p>
+              <p className="truncate text-[11.5px] text-ink-mute">
+                {[edu.degree, edu.field].filter(Boolean).join(', ') || 'Степень и специальность'}
+                {edu.startYear ? ` · ${edu.startYear}${edu.endYear ? `–${edu.endYear}` : ''}` : ''}
+              </p>
+            </div>
+            <IconButton name="arrow-up" label="Выше" disabled={index === 0} onClick={() => moveEducation(edu.id, -1)} />
+            <IconButton
+              name="arrow-down"
+              label="Ниже"
+              disabled={index === education.length - 1}
+              onClick={() => moveEducation(edu.id, 1)}
+            />
+            <IconButton name="trash" label="Удалить" tone="danger" onClick={() => removeEducation(edu.id)} />
           </div>
-        )}
-      </div>
+
+          <div className="space-y-2.5 border-t border-line bg-surface-2 px-3 py-3">
+            <Field label="Учебное заведение">
+              <Input
+                value={edu.institution}
+                placeholder="МГУ им. М. В. Ломоносова"
+                onChange={(event) => updateEducation(edu.id, { institution: event.target.value })}
+              />
+            </Field>
+            <Grid2>
+              <Field label="Степень">
+                <Input
+                  value={edu.degree}
+                  placeholder="Бакалавр / Магистр"
+                  onChange={(event) => updateEducation(edu.id, { degree: event.target.value })}
+                />
+              </Field>
+              <Field label="Специальность">
+                <Input
+                  value={edu.field}
+                  placeholder="Прикладная информатика"
+                  onChange={(event) => updateEducation(edu.id, { field: event.target.value })}
+                />
+              </Field>
+            </Grid2>
+            <div className="grid grid-cols-3 gap-2.5">
+              <Field label="Год начала">
+                <Input
+                  inputMode="numeric"
+                  value={edu.startYear}
+                  placeholder="2015"
+                  onChange={(event) => updateEducation(edu.id, { startYear: event.target.value })}
+                />
+              </Field>
+              <Field label="Год выпуска">
+                <Input
+                  inputMode="numeric"
+                  value={edu.endYear}
+                  placeholder="2019"
+                  onChange={(event) => updateEducation(edu.id, { endYear: event.target.value })}
+                />
+              </Field>
+              <Field label="Город">
+                <Input
+                  value={edu.location ?? ''}
+                  placeholder="Москва"
+                  onChange={(event) => updateEducation(edu.id, { location: event.target.value })}
+                />
+              </Field>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 };

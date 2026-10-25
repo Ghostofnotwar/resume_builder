@@ -1,139 +1,152 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useResumeStore } from '../../store/resumeStore';
-import { Skill } from '../../types';
-import { v4 as uuidv4 } from 'uuid';
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { Button, EmptyState, IconButton, Input } from '../ui';
+import { Group, TipRow } from './FormKit';
+import { Icon } from '../ui/Icon';
+import { skillSuggestions } from '../../lib/ai/suggest';
+import { cn } from '../../utils';
+import { useDragReorder } from '../../hooks/useDragReorder';
+import { toast } from '../ui/Toast';
 
-const inputClass =
-  'w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all placeholder-gray-300 text-gray-700';
-
-const LEVEL_LABELS = ['', 'Начинающий', 'Базовый', 'Средний', 'Продвинутый', 'Эксперт'];
-
-interface AddSkillFormProps {
-  onAdd: (skill: Skill) => void;
-}
-
-const AddSkillForm: React.FC<AddSkillFormProps> = ({ onAdd }) => {
-  const [name, setName] = useState('');
-  const [level, setLevel] = useState(3);
-
-  const submit = () => {
-    if (!name.trim()) return;
-    onAdd({ id: uuidv4(), name: name.trim(), level });
-    setName('');
-    setLevel(3);
-  };
-
-  return (
-    <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 space-y-2">
-      <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide">Новый навык</p>
-      <div className="flex gap-2">
-        <input
-          className={`${inputClass} flex-1`}
-          value={name}
-          placeholder="Название навыка"
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && submit()}
-        />
-        <button
-          onClick={submit}
-          className="px-3 py-2 bg-indigo-500 text-white text-sm font-semibold rounded-lg hover:bg-indigo-600 transition-colors flex-shrink-0"
-        >
-          +
-        </button>
-      </div>
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-gray-500">Уровень: <strong>{LEVEL_LABELS[level]}</strong></span>
-        </div>
-        <input
-          type="range"
-          min={1}
-          max={5}
-          value={level}
-          onChange={(e) => setLevel(Number(e.target.value))}
-          className="w-full accent-indigo-500"
-        />
-        <div className="flex justify-between text-xs text-gray-300 mt-0.5">
-          {LEVEL_LABELS.slice(1).map((l) => <span key={l}>{l.slice(0, 3)}</span>)}
-        </div>
-      </div>
-    </div>
-  );
-};
+const LEVELS = ['', 'Базовый', 'Начальный', 'Средний', 'Продвинутый', 'Эксперт'];
 
 export const SkillsForm: React.FC = () => {
   const skills = useResumeStore((s) => s.data.skills);
-  const addSkill = useResumeStore((s) => s.addSkill);
+  const jobTitle = useResumeStore((s) => s.data.personal.jobTitle);
+  const addSkillsBulk = useResumeStore((s) => s.addSkillsBulk);
   const updateSkill = useResumeStore((s) => s.updateSkill);
   const removeSkill = useResumeStore((s) => s.removeSkill);
+  const moveSkill = useResumeStore((s) => s.moveSkill);
   const reorderSkills = useResumeStore((s) => s.reorderSkills);
+  const drag = useDragReorder({ onReorder: reorderSkills });
+  const [draft, setDraft] = useState('');
 
-  const onDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-    const items = Array.from(skills);
-    const [moved] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, moved);
-    reorderSkills(items);
+  const suggestions = useMemo(() => {
+    const existing = new Set(skills.map((skill) => skill.name.toLowerCase()));
+    return skillSuggestions(jobTitle)
+      .filter((name) => !existing.has(name.toLowerCase()))
+      .slice(0, 10);
+  }, [jobTitle, skills]);
+
+  const addFromDraft = () => {
+    const names = draft
+      .split(/[,;\n]+/)
+      .map((name) => name.trim())
+      .filter(Boolean);
+    if (!names.length) return;
+    addSkillsBulk(names);
+    setDraft('');
+    toast(`Добавлено: ${names.length}`, { description: 'Уровень можно настроить точками.' });
   };
 
   return (
     <div className="space-y-3">
-      <AddSkillForm onAdd={addSkill} />
+      <Group
+        title="Добавить навыки"
+        description="Через запятую — можно вставить целый список из вакансии."
+        tone="brand"
+      >
+        <div className="flex items-center gap-1.5">
+          <Input
+            value={draft}
+            placeholder="React, TypeScript, Figma..."
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                addFromDraft();
+              }
+            }}
+          />
+          <Button variant="primary" size="md" icon="plus" onClick={addFromDraft}>
+            Добавить
+          </Button>
+        </div>
 
-      <DragDropContext onDragEnd={onDragEnd}>
-        <Droppable droppableId="skills">
-          {(provided) => (
-            <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-2">
-              {skills.map((skill, index) => (
-                <Draggable key={skill.id} draggableId={skill.id} index={index}>
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      className={`flex items-center gap-2 bg-white border rounded-lg px-3 py-2 transition-shadow ${snapshot.isDragging ? 'shadow-md border-indigo-200' : 'border-gray-200'}`}
-                    >
-                      <div {...provided.dragHandleProps} className="text-gray-300 hover:text-gray-400 cursor-grab flex-shrink-0">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 6a2 2 0 100-4 2 2 0 000 4zm0 8a2 2 0 100-4 2 2 0 000 4zm0 8a2 2 0 100-4 2 2 0 000 4zm8-16a2 2 0 100-4 2 2 0 000 4zm0 8a2 2 0 100-4 2 2 0 000 4zm0 8a2 2 0 100-4 2 2 0 000 4z" />
-                        </svg>
-                      </div>
-                      <input
-                        className="flex-1 text-sm text-gray-700 bg-transparent border-none outline-none min-w-0"
-                        value={skill.name}
-                        onChange={(e) => updateSkill(skill.id, { name: e.target.value })}
-                      />
-                      <div className="flex gap-1 flex-shrink-0">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                          <button
-                            key={i}
-                            onClick={() => updateSkill(skill.id, { level: i })}
-                            title={LEVEL_LABELS[i]}
-                            className={`w-3.5 h-3.5 rounded-full transition-colors ${i <= skill.level ? 'bg-indigo-500' : 'bg-gray-200 hover:bg-indigo-200'}`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-xs text-gray-400 w-16 text-right flex-shrink-0">{LEVEL_LABELS[skill.level]}</span>
-                      <button onClick={() => removeSkill(skill.id)} className="p-1 text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                </Draggable>
+        {suggestions.length > 0 && (
+          <div className="mt-2.5">
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
+              Подходящие под «{jobTitle || 'вашу роль'}»
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {suggestions.map((name) => (
+                <button
+                  key={name}
+                  onClick={() => addSkillsBulk([name])}
+                  className="inline-flex items-center gap-1 rounded-full border border-brand-500/25 bg-brand-500/[0.06] px-2.5 py-1 text-[11.5px] font-medium text-brand-600 transition hover:bg-brand-500/15 dark:text-brand-300"
+                >
+                  <span className="text-[13px] leading-none">+</span>
+                  {name}
+                </button>
               ))}
-              {provided.placeholder}
-              {skills.length === 0 && (
-                <div className="text-center py-6 text-gray-300">
-                  <p className="text-3xl mb-2">⚡</p>
-                  <p className="text-sm">Добавьте навыки</p>
-                </div>
-              )}
             </div>
-          )}
-        </Droppable>
-      </DragDropContext>
+          </div>
+        )}
+      </Group>
+
+      {!skills.length ? (
+        <EmptyState
+          icon="zap"
+          title="Навыков пока нет"
+          description="6–12 навыков — оптимум. Ставьте вперёд те, что важны в вакансии."
+        />
+      ) : (
+        <div className="space-y-1.5" {...drag.containerProps}>
+          {skills.map((skill, index) => (
+            <div
+              key={skill.id}
+              {...drag.itemProps(index)}
+              className={cn(
+                'group flex items-center gap-1.5 rounded-xl border border-line bg-surface px-2 py-1.5 transition',
+                drag.draggingIndex === index && 'opacity-50',
+                drag.overIndex === index && drag.draggingIndex !== null && drag.draggingIndex !== index && 'ring-2 ring-brand-400'
+              )}
+            >
+              <span
+                {...drag.handleProps(index)}
+                className="flex h-6 w-4 shrink-0 cursor-grab items-center justify-center text-ink-faint transition hover:text-ink active:cursor-grabbing"
+                title="Перетащите, чтобы изменить порядок"
+              >
+                <Icon name="grip" size={12} />
+              </span>
+              <Input
+                className="field-sm min-w-0 flex-1 border-transparent bg-transparent px-1.5 hover:border-line"
+                value={skill.name}
+                placeholder="Название навыка"
+                onChange={(event) => updateSkill(skill.id, { name: event.target.value })}
+              />
+              <div className="flex shrink-0 items-center gap-1" title={LEVELS[skill.level]}>
+                {[1, 2, 3, 4, 5].map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => updateSkill(skill.id, { level })}
+                    className={cn(
+                      'h-3 w-3 rounded-full transition',
+                      level <= skill.level ? 'bg-brand-500' : 'bg-line-strong hover:bg-brand-300'
+                    )}
+                    aria-label={`Уровень ${level}`}
+                  />
+                ))}
+              </div>
+              <div className="flex shrink-0 items-center opacity-0 transition group-hover:opacity-100">
+                <IconButton name="arrow-up" label="Выше" size={13} disabled={index === 0} onClick={() => moveSkill(skill.id, -1)} />
+                <IconButton
+                  name="arrow-down"
+                  label="Ниже"
+                  size={13}
+                  disabled={index === skills.length - 1}
+                  onClick={() => moveSkill(skill.id, 1)}
+                />
+                <IconButton name="x" label="Удалить" size={13} tone="danger" onClick={() => removeSkill(skill.id)} />
+              </div>
+            </div>
+          ))}
+          <TipRow>
+            Уровни отображаются полосками в шаблонах. Для ATS-версии их можно отключить в разделе «Дизайн».
+          </TipRow>
+        </div>
+      )}
     </div>
   );
 };
