@@ -7,6 +7,7 @@ interface Props {
   scale?: number;
   showPageBreaks?: boolean;
   onPagesChange?: (pages: number) => void;
+  onHeightChange?: (height: number) => void;
 }
 
 /**
@@ -16,7 +17,7 @@ interface Props {
  * Page-break guides are drawn from the measured content height.
  */
 export const ResumePreview = forwardRef<HTMLDivElement, Props>(
-  ({ scale = 1, showPageBreaks = true, onPagesChange }, ref) => {
+  ({ scale = 1, showPageBreaks = true, onPagesChange, onHeightChange }, ref) => {
     const data = useResumeStore((s) => s.data);
     const config = useResumeStore((s) => s.config);
     const measureRef = useRef<HTMLDivElement>(null);
@@ -40,7 +41,8 @@ export const ResumePreview = forwardRef<HTMLDivElement, Props>(
 
     useEffect(() => {
       onPagesChange?.(pages);
-    }, [pages, onPagesChange]);
+      onHeightChange?.(height);
+    }, [pages, height, onPagesChange, onHeightChange]);
 
     const paper = (
       <div

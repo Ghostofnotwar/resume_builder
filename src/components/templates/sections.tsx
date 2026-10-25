@@ -11,7 +11,6 @@ import {
   Skill,
 } from '../../types';
 import { dateRange, hexToRgba } from '../../utils';
-import { PROFICIENCY_LABELS } from '../../constants';
 import { filledCertifications, filledEducation, filledExperience, filledProjects, sectionLabel } from '../../lib/sections';
 import {
   Bullet,
@@ -427,5 +426,3 @@ export const SectionBlock: React.FC<{
     <SectionBody id={id} data={data} config={config} s={s} compact={compact} skillColumns={skillColumns} italicSummary={italicSummary} />
   </div>
 );
-
-export const PROFICIENCY_TEXT = PROFICIENCY_LABELS;

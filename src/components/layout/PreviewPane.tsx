@@ -5,6 +5,7 @@ import { TEMPLATES } from '../../constants';
 import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui';
 import { cn } from '../../utils';
+import { toast } from '../ui/Toast';
 import { ExportMenu } from '../ExportMenu';
 
 interface Props {
@@ -21,6 +22,11 @@ export const PreviewPane: React.FC<Props> = ({ captureRef, onOpenTemplates }) =>
   const [zoom, setZoom] = useState(0.7);
   const [autoFit, setAutoFit] = useState(true);
   const [pages, setPages] = useState(1);
+  const [contentHeight, setContentHeight] = useState(1123);
+  const setTextScale = useResumeStore((s) => s.setTextScale);
+  const setSpacing = useResumeStore((s) => s.setSpacing);
+  const textScale = useResumeStore((s) => s.config.textScale);
+  const spacing = useResumeStore((s) => s.config.spacing);
 
   const fit = useCallback(() => {
     const el = scrollRef.current;
@@ -39,6 +45,24 @@ export const PreviewPane: React.FC<Props> = ({ captureRef, onOpenTemplates }) =>
   }, [autoFit, fit]);
 
   const handlePages = useCallback((count: number) => setPages(count), []);
+  const handleHeight = useCallback((height: number) => setContentHeight(height), []);
+
+  const fitOnePage = () => {
+    const factor = 1123 / Math.max(1123, contentHeight);
+    const target = Math.max(0.8, Math.min(1.12, Number((textScale * factor).toFixed(3))));
+    setSpacing('compact');
+    setTextScale(target);
+    toast(
+      target > 0.8 ? 'Пробуем уместить на одну страницу' : 'Почти получилось',
+      {
+        description:
+          target > 0.8
+            ? 'Плотность уменьшена. Если страница всё ещё не одна — сократите текст.'
+            : 'Текста слишком много. Сократите достижения или уберите раздел.',
+        tone: 'info',
+      }
+    );
+  };
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -98,6 +122,17 @@ export const PreviewPane: React.FC<Props> = ({ captureRef, onOpenTemplates }) =>
           <IconButton name="maximize" label="Вписать в окно" onClick={() => setAutoFit(true)} />
         </div>
 
+        {pages > 1 && (
+          <button
+            onClick={fitOnePage}
+            title="Уменьшить текст и отступы, чтобы уместить резюме на одну страницу"
+            className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-2.5 text-[11.5px] font-semibold text-amber-700 transition hover:bg-amber-500/20 dark:text-amber-400"
+          >
+            <Icon name="maximize" size={13} />
+            В одну страницу
+          </button>
+        )}
+
         <div className="hidden sm:block">
           <ExportMenu captureRef={captureRef} />
         </div>
@@ -107,7 +142,12 @@ export const PreviewPane: React.FC<Props> = ({ captureRef, onOpenTemplates }) =>
       <div ref={scrollRef} className="preview-bg relative min-h-0 flex-1 overflow-auto">
         <div className="flex min-h-full w-full items-start justify-center px-4 py-6 sm:px-8 sm:py-8">
           <div className="animate-float-in">
-            <ResumePreview ref={captureRef} scale={zoom} onPagesChange={handlePages} />
+            <ResumePreview
+              ref={captureRef}
+              scale={zoom}
+              onPagesChange={handlePages}
+              onHeightChange={handleHeight}
+            />
             <div className="mt-4 flex items-center justify-between text-[10.5px] font-medium text-ink-mute">
               <span>
                 {template.name} · {Math.round(zoom * 100)}%

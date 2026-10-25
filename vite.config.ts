@@ -8,9 +8,6 @@ export default defineConfig({
     port: 5173,
     // Preview environments proxy the app under their own host name.
     allowedHosts: true,
-    hmr: {
-      clientPort: 443,
-    },
   },
   build: {
     chunkSizeWarningLimit: 900,
