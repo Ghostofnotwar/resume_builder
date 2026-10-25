@@ -1,78 +1,147 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useEffect, useRef, useState } from 'react';
 import { useResumeStore } from '../store/resumeStore';
 import { TemplateRenderer } from './TemplateRenderer';
+import { A4 } from '../utils';
 
 interface Props {
-  /** Visual scale for the on-screen preview (default 1). The PDF capture
-   *  always uses the un-scaled element via the forwarded ref. */
   scale?: number;
-  className?: string;
+  showPageBreaks?: boolean;
+  onPagesChange?: (pages: number) => void;
 }
 
 /**
- * Renders TWO copies of the resume:
- *  1. A hidden, always-1:1 element (ref forwarded) — used by html2canvas.
- *  2. A visible scaled element — what the user sees on screen.
- *
- * This avoids the "ref is inside CSS transform" problem that makes
- * html2canvas produce a blank/wrong capture.
+ * Renders the resume twice:
+ *  1. a hidden 1:1 copy (ref forwarded) used for raster PDF / PNG capture;
+ *  2. the visible scaled copy the user interacts with.
+ * Page-break guides are drawn from the measured content height.
  */
 export const ResumePreview = forwardRef<HTMLDivElement, Props>(
-  ({ scale = 1, className }, ref) => {
+  ({ scale = 1, showPageBreaks = true, onPagesChange }, ref) => {
     const data = useResumeStore((s) => s.data);
     const config = useResumeStore((s) => s.config);
+    const measureRef = useRef<HTMLDivElement>(null);
+    const [height, setHeight] = useState(A4.height);
 
-    const a4Style: React.CSSProperties = {
-      width: 794,
-      minHeight: 1123,
-      backgroundColor: config.colorScheme.background,
-      overflow: 'hidden',
-      position: 'relative',
-    };
+    useEffect(() => {
+      const el = measureRef.current;
+      if (!el) return;
+      const update = () => setHeight(Math.max(A4.height, el.scrollHeight));
+      update();
+      const observer = new ResizeObserver(update);
+      observer.observe(el);
+      const timer = setTimeout(update, 120);
+      return () => {
+        observer.disconnect();
+        clearTimeout(timer);
+      };
+    }, [data, config]);
+
+    const pages = Math.max(1, Math.ceil((height - 2) / A4.height));
+
+    useEffect(() => {
+      onPagesChange?.(pages);
+    }, [pages, onPagesChange]);
+
+    const paper = (
+      <div
+        ref={measureRef}
+        style={{
+          width: A4.width,
+          minHeight: A4.height,
+          backgroundColor: '#ffffff',
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        <TemplateRenderer data={data} config={config} />
+      </div>
+    );
 
     return (
-      <div className={className} style={{ position: 'relative' }}>
-        {/* ── Hidden 1:1 element for PDF capture ── */}
+      <>
+        {/* hidden 1:1 capture target */}
         <div
           ref={ref}
           data-pdf-capture="true"
+          aria-hidden="true"
           style={{
-            ...a4Style,
             position: 'absolute',
             top: 0,
-            left: 0,
-            // Pushed far off-screen so it's not visible but still rendered
-            transform: 'translateX(-9999px)',
+            left: -20000,
+            width: A4.width,
+            minHeight: A4.height,
+            background: '#ffffff',
             pointerEvents: 'none',
-            zIndex: -1,
           }}
         >
           <TemplateRenderer data={data} config={config} />
         </div>
 
-        {/* ── Visible scaled element ── */}
+        {/* visible scaled page(s) */}
         <div
           style={{
-            width: 794 * scale,
-            height: 1123 * scale,
+            width: A4.width * scale,
+            height: height * scale,
             position: 'relative',
-            boxShadow: '0 4px 32px rgba(0,0,0,0.18)',
+            transition: 'width .18s ease, height .18s ease',
           }}
         >
           <div
             style={{
-              ...a4Style,
+              width: A4.width,
+              height,
               transform: `scale(${scale})`,
               transformOrigin: 'top left',
               position: 'absolute',
               top: 0,
               left: 0,
+              background: '#ffffff',
+              boxShadow: '0 1px 2px rgba(15,23,42,.1), 0 30px 60px -30px rgba(15,23,42,.4)',
+              overflow: 'hidden',
             }}
           >
-            <TemplateRenderer data={data} config={config} />
+            {paper}
+
+            {/* page break guides */}
+            {showPageBreaks &&
+              Array.from({ length: pages - 1 }).map((_, index) => {
+                const top = (index + 1) * A4.height;
+                return (
+                  <div
+                    key={top}
+                    style={{
+                      position: 'absolute',
+                      top,
+                      left: 0,
+                      right: 0,
+                      height: 0,
+                      borderTop: '1.5px dashed rgba(99,102,241,.55)',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    <span
+                      style={{
+                        position: 'absolute',
+                        right: 6,
+                        top: -9,
+                        fontSize: 8,
+                        fontFamily: 'Inter, sans-serif',
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                        color: '#fff',
+                        background: 'rgba(99,102,241,.85)',
+                        padding: '1px 5px',
+                        borderRadius: 3,
+                      }}
+                    >
+                      стр. {index + 2}
+                    </span>
+                  </div>
+                );
+              })}
           </div>
         </div>
-      </div>
+      </>
     );
   }
 );
