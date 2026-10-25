@@ -22,10 +22,12 @@ export const AiWriteTab: React.FC = () => {
   const setLocale = useResumeStore((s) => s.setLocale);
 
   const settings = useAiStore((s) => s.settings);
+  const vacancy = useAiStore((s) => s.vacancy);
+  const setVacancy = useAiStore((s) => s.setVacancy);
+  const coverLetter = useAiStore((s) => s.coverLetter);
+  const setCoverLetter = useAiStore((s) => s.setCoverLetter);
   const hasKey = Boolean(settings.apiKey.trim() && settings.baseUrl.trim() && settings.model.trim());
 
-  const [vacancy, setVacancy] = useState('');
-  const [coverLetter, setCoverLetter] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
 
   const handleSummary = async () => {

@@ -2,8 +2,10 @@ import React, { useMemo, useState } from 'react';
 import { useResumeStore } from '../../store/resumeStore';
 import { Button, EmptyState, IconButton, Input } from '../ui';
 import { Group, TipRow } from './FormKit';
+import { Icon } from '../ui/Icon';
 import { skillSuggestions } from '../../lib/ai/suggest';
 import { cn } from '../../utils';
+import { useDragReorder } from '../../hooks/useDragReorder';
 import { toast } from '../ui/Toast';
 
 const LEVELS = ['', 'Базовый', 'Начальный', 'Средний', 'Продвинутый', 'Эксперт'];
@@ -15,6 +17,8 @@ export const SkillsForm: React.FC = () => {
   const updateSkill = useResumeStore((s) => s.updateSkill);
   const removeSkill = useResumeStore((s) => s.removeSkill);
   const moveSkill = useResumeStore((s) => s.moveSkill);
+  const reorderSkills = useResumeStore((s) => s.reorderSkills);
+  const drag = useDragReorder({ onReorder: reorderSkills });
   const [draft, setDraft] = useState('');
 
   const suggestions = useMemo(() => {
@@ -87,14 +91,23 @@ export const SkillsForm: React.FC = () => {
           description="6–12 навыков — оптимум. Ставьте вперёд те, что важны в вакансии."
         />
       ) : (
-        <div className="space-y-1.5">
+        <div className="space-y-1.5" {...drag.containerProps}>
           {skills.map((skill, index) => (
             <div
               key={skill.id}
-              className="group flex items-center gap-1.5 rounded-xl border border-line bg-surface px-2.5 py-1.5"
+              {...drag.itemProps(index)}
+              className={cn(
+                'group flex items-center gap-1.5 rounded-xl border border-line bg-surface px-2 py-1.5 transition',
+                drag.draggingIndex === index && 'opacity-50',
+                drag.overIndex === index && drag.draggingIndex !== null && drag.draggingIndex !== index && 'ring-2 ring-brand-400'
+              )}
             >
-              <span className="w-4 shrink-0 text-center text-[10px] font-semibold tabular-nums text-ink-faint">
-                {index + 1}
+              <span
+                {...drag.handleProps(index)}
+                className="flex h-6 w-4 shrink-0 cursor-grab items-center justify-center text-ink-faint transition hover:text-ink active:cursor-grabbing"
+                title="Перетащите, чтобы изменить порядок"
+              >
+                <Icon name="grip" size={12} />
               </span>
               <Input
                 className="field-sm min-w-0 flex-1 border-transparent bg-transparent px-1.5 hover:border-line"

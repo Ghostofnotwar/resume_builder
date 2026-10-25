@@ -78,22 +78,54 @@ export function isSectionVisible(config: ResumeConfig, id: string): boolean {
   return !config.hiddenSections.includes(id);
 }
 
+/* ── blank-item filtering: never print half-filled cards ── */
+
+export function filledExperience(data: ResumeData) {
+  return data.experience.filter(
+    (exp) =>
+      exp.position.trim() ||
+      exp.company.trim() ||
+      exp.description.trim() ||
+      exp.highlights.some((highlight) => highlight.trim()) ||
+      exp.startDate
+  );
+}
+
+export function filledEducation(data: ResumeData) {
+  return data.education.filter(
+    (edu) => edu.institution.trim() || edu.degree.trim() || edu.field.trim()
+  );
+}
+
+export function filledProjects(data: ResumeData) {
+  return data.projects.filter(
+    (project) =>
+      project.name.trim() ||
+      project.description.trim() ||
+      project.highlights.some((highlight) => highlight.trim())
+  );
+}
+
+export function filledCertifications(data: ResumeData) {
+  return data.certifications.filter((cert) => cert.name.trim() || cert.issuer.trim());
+}
+
 export function hasSectionContent(data: ResumeData, id: string): boolean {
   switch (id) {
     case 'summary':
       return Boolean(data.summary.trim());
     case 'experience':
-      return data.experience.length > 0;
+      return filledExperience(data).length > 0;
     case 'education':
-      return data.education.length > 0;
+      return filledEducation(data).length > 0;
     case 'projects':
-      return data.projects.length > 0;
+      return filledProjects(data).length > 0;
     case 'skills':
       return data.skills.length > 0;
     case 'languages':
       return data.languages.length > 0;
     case 'certifications':
-      return data.certifications.length > 0;
+      return filledCertifications(data).length > 0;
     default: {
       if (id.startsWith('custom:')) {
         const customId = id.slice(7);

@@ -100,6 +100,36 @@ export function fileToBase64(file: File): Promise<string> {
   });
 }
 
+/**
+ * Reads an image file and downsizes it (max side 640 px, JPEG) so a photo
+ * never blows up localStorage or the PDF size.
+ */
+export async function compressImage(file: File, maxSide = 640, quality = 0.86): Promise<string> {
+  const dataUrl = await fileToBase64(file);
+  if (!file.type.startsWith('image/') || file.type === 'image/svg+xml') return dataUrl;
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('image decode failed'));
+      img.src = dataUrl;
+    });
+    const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+    if (scale >= 1 && dataUrl.length < 320_000) return dataUrl;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(image.width * scale);
+    canvas.height = Math.round(image.height * scale);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return dataUrl;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', quality);
+  } catch {
+    return dataUrl;
+  }
+}
+
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

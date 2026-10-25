@@ -12,7 +12,7 @@ import {
 } from '../../types';
 import { dateRange, hexToRgba } from '../../utils';
 import { PROFICIENCY_LABELS } from '../../constants';
-import { sectionLabel } from '../../lib/sections';
+import { filledCertifications, filledEducation, filledExperience, filledProjects, sectionLabel } from '../../lib/sections';
 import {
   Bullet,
   DatePill,
@@ -367,11 +367,11 @@ export const SectionBody: React.FC<{
     case 'summary':
       return <Summary text={data.summary} s={s} italic={italicSummary} />;
     case 'experience':
-      return <ExperienceList items={data.experience} s={s} compact={compact} locale={config.locale} />;
+      return <ExperienceList items={filledExperience(data)} s={s} compact={compact} locale={config.locale} />;
     case 'education':
-      return <EducationList items={data.education} s={s} compact={compact} />;
+      return <EducationList items={filledEducation(data)} s={s} compact={compact} />;
     case 'projects':
-      return <ProjectsList items={data.projects} s={s} locale={config.locale} compact={compact} />;
+      return <ProjectsList items={filledProjects(data)} s={s} locale={config.locale} compact={compact} />;
     case 'skills':
       return (
         <SkillsList
@@ -385,7 +385,7 @@ export const SectionBody: React.FC<{
     case 'languages':
       return <LanguagesList items={data.languages} s={s} compact={compact} />;
     case 'certifications':
-      return <CertificationsList items={data.certifications} s={s} compact={compact} />;
+      return <CertificationsList items={filledCertifications(data)} s={s} compact={compact} />;
     default: {
       if (id.startsWith('custom:')) {
         const custom = data.customSections.find((section) => `custom:${section.id}` === id);

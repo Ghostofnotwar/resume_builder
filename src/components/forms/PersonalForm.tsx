@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { useResumeStore } from '../../store/resumeStore';
 import { useAiStore } from '../../store/aiStore';
-import { fileToBase64, cn } from '../../utils';
+import { compressImage, cn } from '../../utils';
 import { Button, Field, IconButton, Input, TextArea } from '../ui';
 import { AddButton, AiChip, Counter, Grid2, Group, TipRow } from './FormKit';
 import { Icon } from '../ui/Icon';
@@ -35,7 +35,7 @@ export const PersonalForm: React.FC = () => {
       toast('Фото слишком большое', { description: 'Максимум 6 МБ — сожмите изображение.', tone: 'error' });
       return;
     }
-    updatePersonal({ photo: await fileToBase64(file) });
+    updatePersonal({ photo: await compressImage(file) });
     toast('Фото добавлено');
   };
 

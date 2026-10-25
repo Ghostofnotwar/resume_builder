@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useResumeStore } from '../../store/resumeStore';
+import { useAiStore } from '../../store/aiStore';
 import { analyzeResume, scoreLabel } from '../../lib/ai/quality';
 import { TextArea } from '../ui';
 import { Group, TipRow } from './FormKit';
@@ -16,7 +17,8 @@ const STATUS_META = {
 export const QualityPanel: React.FC = () => {
   const data = useResumeStore((s) => s.data);
   const addSkillsBulk = useResumeStore((s) => s.addSkillsBulk);
-  const [vacancy, setVacancy] = useState('');
+  const vacancy = useAiStore((s) => s.vacancy);
+  const setVacancy = useAiStore((s) => s.setVacancy);
 
   const report = useMemo(() => analyzeResume(data, vacancy), [data, vacancy]);
   const label = scoreLabel(report.score);

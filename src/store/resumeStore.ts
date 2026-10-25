@@ -45,12 +45,14 @@ export interface ResumeStore {
   updateExperience: (id: string, patch: Partial<Experience>) => void;
   removeExperience: (id: string) => void;
   moveExperience: (id: string, direction: -1 | 1) => void;
+  reorderExperience: (from: number, to: number) => void;
 
   /* ── education ── */
   addEducation: (edu?: Partial<Education>) => void;
   updateEducation: (id: string, patch: Partial<Education>) => void;
   removeEducation: (id: string) => void;
   moveEducation: (id: string, direction: -1 | 1) => void;
+  reorderEducation: (from: number, to: number) => void;
 
   /* ── skills ── */
   addSkill: (skill?: Partial<Skill>) => void;
@@ -58,6 +60,7 @@ export interface ResumeStore {
   updateSkill: (id: string, patch: Partial<Skill>) => void;
   removeSkill: (id: string) => void;
   moveSkill: (id: string, direction: -1 | 1) => void;
+  reorderSkills: (from: number, to: number) => void;
 
   /* ── languages ── */
   addLanguage: (lang?: Partial<Language>) => void;
@@ -69,6 +72,7 @@ export interface ResumeStore {
   updateProject: (id: string, patch: Partial<Project>) => void;
   removeProject: (id: string) => void;
   moveProject: (id: string, direction: -1 | 1) => void;
+  reorderProjects: (from: number, to: number) => void;
 
   /* ── certifications ── */
   addCertification: (cert?: Partial<Certification>) => void;
@@ -128,6 +132,14 @@ function nextHistory(s: ResumeStore): Pick<ResumeStore, 'past' | 'future' | 'sav
     future: [],
     savedAt: now,
   };
+}
+
+function reorder<T>(list: T[], from: number, to: number): T[] {
+  if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return list;
+  const next = [...list];
+  const [moved] = next.splice(from, 1);
+  next.splice(to, 0, moved);
+  return next;
 }
 
 function move<T extends { id: string }>(list: T[], id: string, direction: -1 | 1): T[] {
@@ -332,6 +344,11 @@ export const useResumeStore = create<ResumeStore>()(
           ...nextHistory(s),
           data: { ...s.data, experience: move(s.data.experience, id, direction) },
         })),
+      reorderExperience: (from, to) =>
+        set((s) => ({
+          ...nextHistory(s),
+          data: { ...s.data, experience: reorder(s.data.experience, from, to) },
+        })),
 
       /* ── education ── */
       addEducation: (edu) =>
@@ -356,6 +373,11 @@ export const useResumeStore = create<ResumeStore>()(
         set((s) => ({
           ...nextHistory(s),
           data: { ...s.data, education: move(s.data.education, id, direction) },
+        })),
+      reorderEducation: (from, to) =>
+        set((s) => ({
+          ...nextHistory(s),
+          data: { ...s.data, education: reorder(s.data.education, from, to) },
         })),
 
       /* ── skills ── */
@@ -397,6 +419,11 @@ export const useResumeStore = create<ResumeStore>()(
         set((s) => ({
           ...nextHistory(s),
           data: { ...s.data, skills: move(s.data.skills, id, direction) },
+        })),
+      reorderSkills: (from, to) =>
+        set((s) => ({
+          ...nextHistory(s),
+          data: { ...s.data, skills: reorder(s.data.skills, from, to) },
         })),
 
       /* ── languages ── */
@@ -448,6 +475,11 @@ export const useResumeStore = create<ResumeStore>()(
         set((s) => ({
           ...nextHistory(s),
           data: { ...s.data, projects: move(s.data.projects, id, direction) },
+        })),
+      reorderProjects: (from, to) =>
+        set((s) => ({
+          ...nextHistory(s),
+          data: { ...s.data, projects: reorder(s.data.projects, from, to) },
         })),
 
       /* ── certifications ── */

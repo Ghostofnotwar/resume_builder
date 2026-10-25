@@ -1,4 +1,5 @@
 import { QualityCheck, QualityReport, ResumeData } from '../../types';
+import { filledCertifications, filledEducation, filledExperience, filledProjects } from '../sections';
 
 const STOPWORDS = new Set([
   'и','в','во','не','что','он','на','я','с','со','как','а','то','все','она','так','его','но','да','ты','к','у','же','вы','за','бы','по','только','ее','мне','было','вот','от','меня','еще','нет','о','из','ему','теперь','когда','даже','ну','вдруг','ли','если','уже','или','ни','быть','был','него','до','вас','нибудь','опять','уж','вам','ведь','там','потом','себя','ничего','ей','может','они','тут','где','есть','надо','ней','для','мы','тебя','их','чем','была','сам','чтоб','без','будто','чего','раз','тоже','себе','под','будет','ж','тогда','кто','этот','того','потому','этого','какой','совсем','ним','здесь','этом','один','почти','мой','тем','чтобы','нее','сейчас','были','куда','зачем','всех','никогда','можно','при','наконец','два','об','другой','хоть','после','над','больше','тот','через','эти','нас','про','всего','них','какая','много','разве','три','эту','моя','впрочем','хорошо','свою','этой','перед','иногда','лучше','чуть','том','нельзя','такой','им','более','всегда','конечно','всю','между',
@@ -32,13 +33,13 @@ export function resumeToText(data: ResumeData): string {
     data.personal.location,
     data.summary,
   ];
-  for (const exp of data.experience) {
+  for (const exp of filledExperience(data)) {
     parts.push(exp.position, exp.company, exp.description, ...exp.highlights);
   }
-  for (const edu of data.education) parts.push(edu.institution, edu.degree, edu.field);
+  for (const edu of filledEducation(data)) parts.push(edu.institution, edu.degree, edu.field);
   for (const skill of data.skills) parts.push(skill.name);
-  for (const project of data.projects) parts.push(project.name, project.role, project.description, ...project.highlights);
-  for (const cert of data.certifications) parts.push(cert.name, cert.issuer);
+  for (const project of filledProjects(data)) parts.push(project.name, project.role, project.description, ...project.highlights);
+  for (const cert of filledCertifications(data)) parts.push(cert.name, cert.issuer);
   for (const section of data.customSections) {
     parts.push(section.title);
     for (const item of section.items) parts.push(item.title, item.subtitle, item.description);
@@ -53,11 +54,12 @@ function countWords(text: string): number {
 export function analyzeResume(data: ResumeData, vacancy = ''): QualityReport {
   const checks: QualityCheck[] = [];
   const text = resumeToText(data);
-  const bulletCount = data.experience.reduce(
+  const experience = filledExperience(data);
+  const bulletCount = experience.reduce(
     (sum, e) => sum + e.highlights.filter((h) => h.trim()).length,
     0
   );
-  const allBullets = data.experience.flatMap((e) => e.highlights.filter(Boolean));
+  const allBullets = experience.flatMap((e) => e.highlights.filter(Boolean));
   const quantified = allBullets.filter((b) => /\d|%|₽|\$|€/.test(b)).length;
   const actionStart = allBullets.filter((b) =>
     /^[А-ЯA-Z][а-яa-z]+(л|ла|ли|н|а|ен|ил|ал|ся)\b/.test(b.trim()) ||
@@ -96,7 +98,7 @@ export function analyzeResume(data: ResumeData, vacancy = ''): QualityReport {
   push({
     id: 'experience',
     label: 'Опыт: не менее 2 мест или 1 подробное',
-    status: data.experience.length >= 2 ? 'pass' : data.experience.length === 1 ? 'warn' : 'fail',
+    status: experience.length >= 2 ? 'pass' : experience.length === 1 ? 'warn' : 'fail',
     hint: 'Опишите 2–5 последних мест работы, начиная с текущего.',
     weight: 12,
   });

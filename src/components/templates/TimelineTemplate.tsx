@@ -1,7 +1,7 @@
 import React from 'react';
 import { ResumeConfig, ResumeData } from '../../types';
 import { formatDate, hexToRgba } from '../../utils';
-import { orderedSections, sectionLabel } from '../../lib/sections';
+import { filledExperience, orderedSections, sectionLabel } from '../../lib/sections';
 import { Bullet, contactItems, linkIcon, makeStyle, makeTokens, Photo, prettyUrl } from './shared';
 import { SectionBlock } from './sections';
 import { Icon } from '../ui/Icon';
@@ -112,8 +112,8 @@ export const TimelineTemplate: React.FC<Props> = ({ data, config }) => {
                 <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${s.line}, transparent)` }} />
               </div>
 
-              {data.experience.map((exp, index) => {
-                const isLast = index === data.experience.length - 1;
+              {filledExperience(data).map((exp, index) => {
+                const isLast = index === filledExperience(data).length - 1;
                 return (
                   <div key={exp.id} style={{ display: 'flex', gap: 10 }}>
                     <div

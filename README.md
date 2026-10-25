@@ -3,6 +3,17 @@
 Редактор резюме с живым предпросмотром A4, шестью шаблонами, ИИ-помощником и проверкой под ATS.
 React 18 + TypeScript + Vite + Tailwind + Zustand. Всё работает в браузере, без бэкенда.
 
+![Редактор](docs/screenshot-editor.png)
+
+## Шесть шаблонов
+
+![Шаблоны](docs/screenshot-templates.png)
+
+| | |
+| --- | --- |
+| ![Дизайн](docs/screenshot-design.png) | ![ИИ-ассистент](docs/screenshot-ai.png) |
+| ![Проверка резюме](docs/screenshot-quality.png) | |
+
 ---
 
 ## ✨ Возможности

@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { useResumeStore } from '../../store/resumeStore';
 import { useAiStore } from '../../store/aiStore';
 import { Experience } from '../../types';
-import { dateRange } from '../../utils';
+import { cn, dateRange } from '../../utils';
 import { CollapseCard, Field, IconButton, Input, TextArea, Button, EmptyState } from '../ui';
 import { AiChip, AddButton, Grid2, TipRow } from './FormKit';
 import { aiGenerateBullets, aiImproveText } from '../../lib/ai/llm';
+import { Icon } from '../ui/Icon';
 import { improveBulletLocal, suggestBulletsFor } from '../../lib/ai/suggest';
 import { toast } from '../ui/Toast';
+import { useDragReorder } from '../../hooks/useDragReorder';
 
 export const ExperienceForm: React.FC = () => {
   const experiences = useResumeStore((s) => s.data.experience);
@@ -17,11 +19,13 @@ export const ExperienceForm: React.FC = () => {
   const updateExperience = useResumeStore((s) => s.updateExperience);
   const removeExperience = useResumeStore((s) => s.removeExperience);
   const moveExperience = useResumeStore((s) => s.moveExperience);
+  const reorderExperience = useResumeStore((s) => s.reorderExperience);
   const aiSettings = useAiStore((s) => s.settings);
   const hasKey = Boolean(aiSettings.apiKey.trim() && aiSettings.baseUrl.trim() && aiSettings.model.trim());
 
   const [openIds, setOpenIds] = useState<string[]>(experiences.length ? [experiences[0].id] : []);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const drag = useDragReorder({ onReorder: reorderExperience });
 
   const toggle = (id: string) =>
     setOpenIds((ids) => (ids.includes(id) ? ids.filter((i) => i !== id) : [...ids, id]));
@@ -100,9 +104,21 @@ export const ExperienceForm: React.FC = () => {
         />
       )}
 
+      <div className="space-y-2" {...drag.containerProps}>
       {experiences.map((exp, index) => {
         const open = openIds.includes(exp.id);
+        const dragging = drag.draggingIndex === index;
+        const over = drag.overIndex === index && drag.draggingIndex !== null && drag.draggingIndex !== index;
         return (
+          <div
+            key={exp.id}
+            {...drag.itemProps(index)}
+            className={cn(
+              'rounded-2xl transition',
+              dragging && 'opacity-50',
+              over && 'ring-2 ring-brand-400 ring-offset-2 ring-offset-app'
+            )}
+          >
           <CollapseCard
             key={exp.id}
             open={open}
@@ -114,6 +130,13 @@ export const ExperienceForm: React.FC = () => {
               .join(' · ')}
             actions={
               <>
+                <span
+                  {...drag.handleProps(index)}
+                  className="mr-0.5 inline-flex h-8 w-5 cursor-grab items-center justify-center rounded-md text-ink-faint transition hover:bg-surface-3 hover:text-ink active:cursor-grabbing"
+                  title="Перетащите, чтобы изменить порядок"
+                >
+                  <Icon name="grip" size={13} />
+                </span>
                 <IconButton
                   name="arrow-up"
                   label="Выше"
@@ -256,8 +279,10 @@ export const ExperienceForm: React.FC = () => {
               </div>
             </div>
           </CollapseCard>
+          </div>
         );
       })}
+      </div>
     </div>
   );
 };
