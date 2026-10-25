@@ -176,5 +176,16 @@ input[type='number']::-webkit-inner-spin-button {
   #print-root * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    box-sizing: border-box;
+  }
+  #print-root h1,
+  #print-root h2 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  #print-root p,
+  #print-root li {
+    orphans: 2;
+    widows: 2;
   }
 }

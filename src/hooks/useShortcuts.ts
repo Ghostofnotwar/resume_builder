@@ -27,6 +27,10 @@ export function useShortcuts(handlers: ShortcutHandlers): void {
 
       if (!mod) return;
 
+      if (typing && (event.key.toLowerCase() === 'z' || event.key.toLowerCase() === 'y')) {
+        return;
+      }
+
       if (event.key.toLowerCase() === 'z' && !event.shiftKey) {
         event.preventDefault();
         handlers.onUndo?.();

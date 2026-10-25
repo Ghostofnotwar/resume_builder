@@ -87,6 +87,7 @@ export const ResumePreview = forwardRef<HTMLDivElement, Props>(
           }}
         >
           <div
+            data-preview-sheet="true"
             style={{
               width: A4.width,
               height,
@@ -122,7 +123,7 @@ export const ResumePreview = forwardRef<HTMLDivElement, Props>(
                     <span
                       style={{
                         position: 'absolute',
-                        right: 6,
+                        left: 6,
                         top: -9,
                         fontSize: 8,
                         fontFamily: 'Inter, sans-serif',

@@ -10,6 +10,8 @@ import { Icon } from './components/ui/Icon';
 import { useResumeStore } from './store/resumeStore';
 import { useShortcuts } from './hooks/useShortcuts';
 import { cn } from './utils';
+import { QuickStart } from './components/QuickStart';
+import { useUiStore } from './store/uiStore';
 
 const THEME_KEY = 'resume-studio-theme';
 
@@ -31,6 +33,7 @@ export default function App() {
   const [tab, setTab] = useState<EditorTab>('personal');
   const [theme, setTheme] = useState<'light' | 'dark'>(initialTheme);
 
+  const openQuickStart = useUiStore((state) => state.openQuickStart);
   const undo = useResumeStore((s) => s.undo);
   const redo = useResumeStore((s) => s.redo);
   const saveToLibrary = useResumeStore((s) => s.saveToLibrary);
@@ -43,6 +46,15 @@ export default function App() {
       /* ignore */
     }
   }, [theme]);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('resume-studio-onboarded')) return;
+    } catch {
+      return;
+    }
+    openQuickStart();
+  }, [openQuickStart]);
 
   useShortcuts({
     onUndo: () => {
@@ -138,6 +150,12 @@ export default function App() {
         })}
       </nav>
 
+      <QuickStart
+        onImportText={() => {
+          setTab('ai');
+          setViewMode('edit');
+        }}
+      />
       <PrintRoot />
       <ToastHost />
     </div>

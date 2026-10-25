@@ -25,8 +25,9 @@ export const PreviewPane: React.FC<Props> = ({ captureRef, onOpenTemplates }) =>
   const fit = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const available = el.clientWidth - (el.clientWidth < 720 ? 32 : 96);
-    setZoom(Math.min(1.05, Math.max(0.3, available / 794)));
+    const padding = el.clientWidth < 720 ? 32 : 64;
+    const available = el.clientWidth - padding;
+    setZoom(Math.min(1.05, Math.max(0.3, Number((available / 794).toFixed(3)))));
   }, []);
 
   useEffect(() => {
@@ -48,7 +49,13 @@ export const PreviewPane: React.FC<Props> = ({ captureRef, onOpenTemplates }) =>
             <Icon name="layout" size={12} />
             A4
           </span>
-          <span className="inline-flex items-center gap-1 rounded-lg bg-surface-2 px-2 py-1 text-[11px] font-semibold text-ink-soft">
+          <span
+            className={cn(
+              'inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold',
+              pages > 2 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' : pages > 1 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'bg-surface-2 text-ink-soft'
+            )}
+            title={pages > 1 ? 'Для резюме лучше 1–2 страницы: сократите текст или уменьшите масштаб' : 'Одна страница A4'}
+          >
             <Icon name="file" size={12} />
             {pages} {pages === 1 ? 'страница' : pages < 5 ? 'страницы' : 'страниц'}
           </span>

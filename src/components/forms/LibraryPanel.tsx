@@ -5,6 +5,7 @@ import { Group, TipRow } from './FormKit';
 import { Icon } from '../ui/Icon';
 import { toast } from '../ui/Toast';
 import { exportResumeJson, exportMarkdown, readJsonFile } from '../../lib/export';
+import { useUiStore } from '../../store/uiStore';
 
 function formatWhen(timestamp: number): string {
   const date = new Date(timestamp);
@@ -26,6 +27,7 @@ export const LibraryPanel: React.FC = () => {
   const importState = useResumeStore((s) => s.importState);
   const clearHistory = useResumeStore((s) => s.clearHistory);
   const fileRef = useRef<HTMLInputElement>(null);
+  const openQuickStart = useUiStore((s) => s.openQuickStart);
 
   const handleExportJson = () => {
     exportResumeJson(data, config, docName);
@@ -61,6 +63,12 @@ export const LibraryPanel: React.FC = () => {
             Дублировать
           </Button>
         </div>
+      </Group>
+
+      <Group title="Стартовый набор" description="Профиль, навыки и шаблон одним кликом — выберите профессию.">
+        <Button size="sm" variant="secondary" icon="sparkles" onClick={openQuickStart}>
+          Быстрый старт по профессии
+        </Button>
       </Group>
 
       <Group title="Библиотека" description="Версии под разные вакансии — хранятся локально в браузере.">

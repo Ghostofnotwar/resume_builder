@@ -31,7 +31,7 @@ export const Group: React.FC<{
 );
 
 export const Grid2: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
-  <div className={cn('grid grid-cols-2 gap-2.5', className)}>{children}</div>
+  <div className={cn('grid grid-cols-1 gap-2.5 min-[380px]:grid-cols-2 [&>*]:min-w-0', className)}>{children}</div>
 );
 
 export const InlineActions: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (

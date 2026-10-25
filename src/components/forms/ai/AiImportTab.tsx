@@ -8,6 +8,7 @@ import { parseResumeText, ParseResult, SAMPLE_IMPORT_TEXT } from '../../../lib/a
 
 export const AiImportTab: React.FC = () => {
   const replaceData = useResumeStore((s) => s.replaceData);
+  const current = useResumeStore((s) => s.data.personal);
   const [rawText, setRawText] = useState('');
   const [parsed, setParsed] = useState<ParseResult | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -26,7 +27,18 @@ export const AiImportTab: React.FC = () => {
 
   const applyParsed = () => {
     if (!parsed) return;
-    replaceData(parsed.data);
+    const next = {
+      ...parsed.data,
+      personal: {
+        ...parsed.data.personal,
+        fullName: parsed.data.personal.fullName || current.fullName,
+        email: parsed.data.personal.email || current.email,
+        phone: parsed.data.personal.phone || current.phone,
+        photo: parsed.data.personal.photo || current.photo,
+        links: parsed.data.personal.links.length ? parsed.data.personal.links : current.links,
+      },
+    };
+    replaceData(next);
     setParsed(null);
     setRawText('');
     toast('Резюме заполнено из текста', { description: 'Проверьте даты и формулировки — Ctrl+Z отменит.' });

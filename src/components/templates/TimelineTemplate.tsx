@@ -118,7 +118,7 @@ export const TimelineTemplate: React.FC<Props> = ({ data, config }) => {
                   <div key={exp.id} style={{ display: 'flex', gap: 10 }}>
                     <div
                       style={{
-                        width: 72,
+                        width: 82,
                         flexShrink: 0,
                         textAlign: 'right',
                         paddingTop: 1.5,
